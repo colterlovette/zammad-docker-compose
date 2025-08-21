@@ -19,9 +19,15 @@ x-shared:
       BACKUP_TIME: "${BACKUP_TIME:-03:00}"
       HOLD_DAYS: "${HOLD_DAYS:-10}"
       TZ: "${TZ:-Europe/Berlin}"
-      # Allow passing in these variables via .env:
-      AUTOWIZARD_JSON:
-      AUTOWIZARD_RELATIVE_PATH:
+
+      # Zammad behind a reverse proxy (Coolify/Traefik)
+      NGINX_SERVER_SCHEME: ${NGINX_SERVER_SCHEME:-https}
+      ZAMMAD_HTTP_TYPE: ${ZAMMAD_HTTP_TYPE:-https}
+      ZAMMAD_FQDN: ${ZAMMAD_FQDN:-support.example.com}
+      # Trust local/private proxies (adjust if you know your Traefik/coolify-proxy subnet)
+      RAILS_TRUSTED_PROXIES: ${RAILS_TRUSTED_PROXIES:-127.0.0.1,::1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16}
+
+      # Optional: Elasticsearch (leave empty to run without)
       ELASTICSEARCH_ENABLED:
       ELASTICSEARCH_SCHEMA:
       ELASTICSEARCH_HOST:
@@ -30,25 +36,15 @@ x-shared:
       ELASTICSEARCH_PASS:
       ELASTICSEARCH_NAMESPACE:
       ELASTICSEARCH_REINDEX:
+
+      # Optional Nginx tweaks
       NGINX_PORT:
       NGINX_CLIENT_MAX_BODY_SIZE:
       NGINX_SERVER_NAME:
-      NGINX_SERVER_SCHEME:
-      RAILS_TRUSTED_PROXIES:
-      ZAMMAD_HTTP_TYPE:
-      ZAMMAD_FQDN:
-      ZAMMAD_WEB_CONCURRENCY:
-      ZAMMAD_PROCESS_SESSIONS_JOBS_WORKERS:
-      ZAMMAD_PROCESS_SCHEDULED_JOBS_WORKERS:
-      ZAMMAD_PROCESS_DELAYED_JOBS_WORKERS:
-      # ZAMMAD_SESSION_JOBS_CONCURRENT is deprecated, please use ZAMMAD_PROCESS_SESSIONS_JOBS_WORKERS instead.
-      ZAMMAD_SESSION_JOBS_CONCURRENT:
-      # Variables used by ngingx-proxy container for reverse proxy creations
-      # for docs refer to https://github.com/nginx-proxy/nginx-proxy
+
+      # Legacy/aux vars (unused with Coolify/Traefik)
       VIRTUAL_HOST:
       VIRTUAL_PORT:
-      # Variables used by acme-companion for retrieval of LetsEncrypt certificate
-      # for docs refer to https://github.com/nginx-proxy/acme-companion
       LETSENCRYPT_HOST:
       LETSENCRYPT_EMAIL:
 
@@ -97,9 +93,8 @@ services:
     <<: *zammad-service
     command: ["zammad-nginx"]
     expose:
-      - "${NGINX_PORT:-8080}"
-    ports:
-      - "${NGINX_EXPOSE_PORT:-8080}:${NGINX_PORT:-8080}"
+      - "${NGINX_PORT:-8080}"   # <— keep 'expose' or remove; do NOT use 'ports'
+    # ports:                    # <— REMOVED to avoid host port conflicts; Traefik will route internally
     depends_on:
       - zammad-railsserver
 
